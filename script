@@ -74,7 +74,12 @@ local Potions = {
 local SelectedPotion = nil
 
 local function hasAlchemistTool()
-    return Backpack:FindFirstChild("Alchemist") or Character:FindFirstChild("Alchemist")
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+
+    if not char or not backpack then return false end
+
+    return char:FindFirstChild("Alchemist") or backpack:FindFirstChild("Alchemist")
 end
 
 local function isPlayerInArena()
