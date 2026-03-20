@@ -83,7 +83,7 @@ local function hasAlchemistTool()
 end
 
 local function isPlayerInArena()
-    local enteredBool = LocalPlayer:FindFirstChild("entered")
+    local enteredBool = Character:FindFirstChild("entered")
     return enteredBool and enteredBool.Value
 end
 
