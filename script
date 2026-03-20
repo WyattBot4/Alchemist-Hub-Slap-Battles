@@ -1,0 +1,229 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Backpack = LocalPlayer:WaitForChild("Backpack")
+local Workspace = game:GetService("Workspace")
+
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+end)
+
+local Window = Rayfield:CreateWindow({
+    Name = "Alchemist Hub | Slap Battles",
+    LoadingTitle = "Slap Battles",
+    LoadingSubtitle = "by z183",
+    ConfigurationSaving = {Enabled = false, FolderName = "Alchemist Hub", FileName = "Alchemist Config"},
+})
+
+-- Notification helper
+local function notify(title, text, duration)
+    Rayfield:Notify({
+        Title = title,
+        Content = text,
+        Duration = duration or 3,
+        Image = nil,
+    })
+end
+
+local MainTab = Window:CreateTab("Home", nil)
+
+local Ingredients = {
+    "All",
+    "Autumn Sprout",
+    "Blood Rose",
+    "Blue Crystal",
+    "Dark Root",
+    "Dire Flower",
+    "Elder Wood",
+    "Fire Flower",
+    "Glowing Mushroom",
+    "Hazel Lily",
+    "Jade Stone",
+    "Lamp Grass",
+    "Mushroom",
+    "Plane Flower",
+    "Red Crystal",
+    "Wild Vine",
+    "Winter Rose",
+    "Cake Mix"
+}
+
+local SelectedIngredients = {}
+local Collecting = false
+
+local Potions = {
+    ["Grug Potion"] = {"Mushroom"},
+    ["Nightmare Potion"] = {"Dark Root", "Dark Root", "Dark Root"},
+    ["Confusion Potion"] = {"Red Crystal", "Blue Crystal", "Glowing Mushroom"},
+    ["Power Potion"] = {"Dire Flower", "Red Crystal", "Wild Vine"},
+    ["Paralyzing Potion"] = {"Plane Flower", "Plane Flower"},
+    ["Haste Potion"] = {"Autumn Sprout", "Jade Stone"},
+    ["Invisibility Potion"] = {"Hazel Lily", "Hazel Lily", "Blue Crystal"},
+    ["Explosion Potion"] = {"Red Crystal", "Fire Flower", "Fire Flower"},
+    ["Invincible Potion"] = {"Elder Wood", "Mushroom", "Mushroom"},
+    ["Toxic Potion"] = {"Dark Root", "Dark Root", "Blood Rose", "Red Crystal"},
+    ["Freeze Potion"] = {"Winter Rose", "Winter Rose", "Wild Vine", "Blue Crystal", "Glowing Mushroom"},
+    ["Feather Potion"] = {"Mushroom", "Hazel Lily"},
+    ["Speed Potion"] = {"Mushroom", "Mushroom", "Plane Flower", "Hazel Lily", "Blue Crystal"},
+    ["Lethal Potion"] = {"Blood Rose", "Blood Rose", "Blood Rose", "Blood Rose", "Blood Rose", "Blood Rose", "Blood Rose", "Blood Rose", "Blood Rose", "Blood Rose", "Dark Root", "Dark Root", "Dark Root", "Dark Root", "Dark Root", "Dark Root", "Dark Root", "Dark Root", "Dark Root", "Dark Root", },
+    ["Slow Potion"] = {"Mushroom", "Mushroom", "Blue Crystal", "Blue Crystal", "Jade Stone", "Plane Flower"},
+    ["Antitoxin Potion"] = {"Blue Crystal", "Glowing Mushroom", "Glowing Mushroom", "Plane Flower", "Plane Flower", "Elder Wood"},
+    ["Corrupted Vine Potion"] = {"Wild Vines", "Wild Vines", "Wild Vines", "Blood Rose", "Dark Root", "Elder Wood", "Jade Stone",}
+}
+
+local SelectedPotion = nil
+
+local function hasAlchemistTool()
+    return Backpack:FindFirstChild("Alchemist") or Character:FindFirstChild("Alchemist")
+end
+
+local function isPlayerInArena()
+    local arenaBool = Character:FindFirstChild("isInArena")
+    return arenaBool and arenaBool.Value
+end
+
+MainTab:CreateDropdown({
+    Name = "Select Ingredients to Collect",
+    Options = Ingredients,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(options)
+        SelectedIngredients = options
+    end,
+})
+
+-- Store reference to toggle
+local CollectToggleRef
+
+CollectToggleRef = MainTab:CreateToggle({
+    Name = "Collect All Ingredients",
+    CurrentValue = false,
+    Flag = "CollectToggle",
+    Callback = function(Value)
+        Collecting = Value
+        if Collecting then
+            -- Spawn a loop that runs while toggle is on
+            task.spawn(function()
+                while Collecting do
+                    local hrp = Character:FindFirstChild("HumanoidRootPart")
+                    local folder = Workspace:FindFirstChild("Alchemist_Ingredients_")
+
+                    -- Check if player still has tool and is in arena
+                    if not isPlayerInArena() then
+                        notify("Error", "You must be in the arena!", 4)
+                        Collecting = false
+                        CollectToggleRef:Set(false)
+                        break
+                    end
+                    if not hasAlchemistTool() then
+                        notify("Error", "You need the Alchemist glove equipped!", 4)
+                        Collecting = false
+                        CollectToggleRef:Set(false)
+                        break
+                    end
+
+                    -- If no folder or HRP, just wait a bit and continue
+                    if not folder or not hrp then
+                        task.wait(0.1)
+                        continue
+                    end
+
+                    local SelectedMap = {}
+                    for _, v in ipairs(SelectedIngredients) do
+                        SelectedMap[v] = true
+                    end
+
+                    -- Loop through ingredients
+                    for _, ingredient in ipairs(folder:GetChildren()) do
+                        if not Collecting then break end
+                        if SelectedMap["All"] or SelectedMap[ingredient.Name] then
+                            local clickbox = ingredient:FindFirstChild("Clickbox")
+                            if clickbox and hrp then
+                                task.spawn(function()
+                                    firetouchinterest(hrp, clickbox, 0)
+                                    firetouchinterest(hrp, clickbox, 1)
+                                    local cd = clickbox:FindFirstChildOfClass("ClickDetector")
+                                    if cd then
+                                        cd.MaxActivationDistance = math.huge
+                                        fireclickdetector(cd)
+                                    end
+                                end)
+                            end
+                        end
+                    end
+
+                    task.wait(0.05)
+                end
+            end)
+        end
+    end,
+})
+
+MainTab:CreateDropdown({
+    Name = "Select Potion",
+    Options = (function()
+        local t = {"All"}
+        for name, _ in pairs(Potions) do
+            table.insert(t, name)
+        end
+        return t
+    end)(),
+    CurrentOption = {},
+    MultipleOptions = false,
+    Callback = function(option)
+        SelectedPotion = option[1]
+    end,
+})
+
+MainTab:CreateButton({
+    Name = "Craft Selected Potion",
+    Callback = function()
+        if not SelectedPotion then
+            notify("Error", "No potion selected!", 4)
+            return
+        end
+        if not isPlayerInArena() then
+            notify("Error", "You must be in the arena to craft!", 4)
+            return
+        end
+        if not hasAlchemistTool() then
+            notify("Error", "Equip the Alchemist glove first!", 4)
+            return
+        end
+
+        local rs = game:GetService("ReplicatedStorage")
+        local alch = rs:WaitForChild("AlchemistEvent")
+        local ability = rs:WaitForChild("GeneralAbility")
+
+        task.spawn(function()
+            local cauldronName = LocalPlayer.Name .. "'s Cauldron"
+            if not workspace:FindFirstChild(cauldronName) then
+                ability:FireServer()
+                task.wait(0.01)
+            end
+
+            local function craftPotion(recipe)
+                for _, ingredientName in ipairs(recipe) do
+                    alch:FireServer("UnEquipItems")
+                    alch:FireServer("EquipItem", ingredientName)
+                    task.wait(0.01)
+                    alch:FireServer("MixItem", ingredientName)
+                    task.wait(0.01)
+                end
+                alch:FireServer("BrewPotion")
+                task.wait(0.2)
+            end
+
+            if SelectedPotion == "All" then
+                for _, recipe in pairs(Potions) do
+                    craftPotion(recipe)
+                end
+            else
+                craftPotion(Potions[SelectedPotion])
+            end
+
+            notify("Success", "Potion crafted successfully!", 3)
+        end)
+    end,
+})
