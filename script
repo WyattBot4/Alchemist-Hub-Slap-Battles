@@ -16,7 +16,6 @@ local Window = Rayfield:CreateWindow({
     ConfigurationSaving = {Enabled = false, FolderName = "Alchemist Hub", FileName = "Alchemist Config"},
 })
 
--- Notification helper
 local function notify(title, text, duration)
     Rayfield:Notify({
         Title = title,
@@ -93,7 +92,6 @@ MainTab:CreateDropdown({
     end,
 })
 
--- Store reference to toggle
 local CollectToggleRef
 
 CollectToggleRef = MainTab:CreateToggle({
@@ -103,13 +101,11 @@ CollectToggleRef = MainTab:CreateToggle({
     Callback = function(Value)
         Collecting = Value
         if Collecting then
-            -- Spawn a loop that runs while toggle is on
             task.spawn(function()
                 while Collecting do
                     local hrp = Character:FindFirstChild("HumanoidRootPart")
                     local folder = Workspace:FindFirstChild("Alchemist_Ingredients_")
 
-                    -- Check if player still has tool and is in arena
                     if not isPlayerInArena() then
                         notify("Error", "You must be in the arena!", 4)
                         Collecting = false
@@ -123,7 +119,6 @@ CollectToggleRef = MainTab:CreateToggle({
                         break
                     end
 
-                    -- If no folder or HRP, just wait a bit and continue
                     if not folder or not hrp then
                         task.wait(0.1)
                         continue
@@ -134,7 +129,6 @@ CollectToggleRef = MainTab:CreateToggle({
                         SelectedMap[v] = true
                     end
 
-                    -- Loop through ingredients
                     for _, ingredient in ipairs(folder:GetChildren()) do
                         if not Collecting then break end
                         if SelectedMap["All"] or SelectedMap[ingredient.Name] then
