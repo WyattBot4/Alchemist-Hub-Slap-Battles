@@ -1,3 +1,18 @@
+-- ==============================
+-- Alchemist Hub | Slap Battles
+-- Fully Fixed Version
+-- ==============================
+
+-- prevent duplicate execution
+if getgenv().AlchemistHubLoaded then return end
+getgenv().AlchemistHubLoaded = true
+
+-- always reset on normal join
+if not getgenv().AutoFarmResume then
+    getgenv().RejoinAutoSlapple = false
+end
+
+-- ===== SERVICES & PLAYER =====
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -9,40 +24,71 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
-if getgenv().AlchemistHubLoaded and not getgenv().AutoFarmResume then
-    return
-end
-getgenv().AlchemistHubLoaded = true
+local RepStorage = game:GetService("ReplicatedStorage")
 
-if not getgenv().AutoFarmResume then
-    getgenv().RejoinAutoSlapple = false
-end
-local Window = Rayfield:CreateWindow({
-    Name = "Alchemist Hub | Slap Battles",
-    LoadingTitle = "Slap Battles",
-    LoadingSubtitle = "by z183",
-    ConfigurationSaving = {Enabled = false, FolderName = "Alchemist Hub", FileName = "Alchemist Config"},
-})
+-- ===== HELPER FUNCTIONS =====
 local function notify(title, text, duration)
     Rayfield:Notify({Title = title, Content = text, Duration = duration or 3})
 end
-local MainTab = Window:CreateTab("Home", nil)
-MainTab:CreateSection("Alchemist")
-local Ingredients = {"All","Autumn Sprout","Blood Rose","Blue Crystal","Dark Root","Dire Flower","Elder Wood","Fire Flower","Glowing Mushroom","Hazel Lily","Jade Stone","Lamp Grass","Mushroom","Plane Flower","Red Crystal","Wild Vine","Winter Rose","Cake Mix"}
-local SelectedIngredients = {}
-local Collecting = false
-local Potions = {["Grug Potion"] = {"Mushroom"},["Nightmare Potion"] = {"Dark Root","Dark Root","Dark Root"},["Confusion Potion"] = {"Red Crystal","Blue Crystal","Glowing Mushroom"},["Power Potion"] = {"Dire Flower","Red Crystal","Wild Vine"},["Paralyzing Potion"] = {"Plane Flower","Plane Flower"},["Haste Potion"] = {"Autumn Sprout","Jade Stone"},["Invisibility Potion"] = {"Hazel Lily","Hazel Lily","Blue Crystal"},["Explosion Potion"] = {"Red Crystal","Fire Flower","Fire Flower"},["Invincible Potion"] = {"Elder Wood","Mushroom","Mushroom"},["Toxic Potion"] = {"Dark Root","Dark Root","Blood Rose","Red Crystal"},["Freeze Potion"] = {"Winter Rose","Winter Rose","Wild Vine","Blue Crystal","Glowing Mushroom"},["Feather Potion"] = {"Mushroom","Hazel Lily"},["Speed Potion"] = {"Mushroom","Mushroom","Plane Flower","Hazel Lily","Blue Crystal"},["Lethal Potion"] = {"Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root"},["Slow Potion"] = {"Mushroom","Mushroom","Blue Crystal","Blue Crystal","Jade Stone","Plane Flower"},["Antitoxin Potion"] = {"Blue Crystal","Glowing Mushroom","Glowing Mushroom","Plane Flower","Plane Flower","Elder Wood"},["Corrupted Vine Potion"] = {"Wild Vines","Wild Vines","Wild Vines","Blood Rose","Dark Root","Elder Wood","Jade Stone"}}
-local SelectedPotion = nil
+
 local function hasAlchemistTool()
     local char = LocalPlayer.Character
     local backpack = LocalPlayer:FindFirstChild("Backpack")
     if not char or not backpack then return false end
     return char:FindFirstChild("Alchemist") or backpack:FindFirstChild("Alchemist")
 end
+
 local function isPlayerInArena()
     local enteredBool = Character:FindFirstChild("entered")
     return enteredBool and enteredBool.Value
 end
+
+local function getHumanoidRootPart(player)
+    return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+end
+
+local function getAnimator()
+    local humanoid = Character and Character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+    if not animator then
+        animator = Instance.new("Animator")
+        animator.Parent = humanoid
+    end
+    return animator
+end
+
+local function playSlapAnimation()
+    local animator = getAnimator()
+    if not animator then return end
+    local slapAnim = RepStorage:FindFirstChild("Slap")
+    if slapAnim then
+        local track = animator:LoadAnimation(slapAnim)
+        track:Play()
+    end
+end
+
+-- ===== UI SETUP =====
+local Window = Rayfield:CreateWindow({
+    Name = "Alchemist Hub | Slap Battles",
+    LoadingTitle = "Slap Battles",
+    LoadingSubtitle = "by z183",
+    ConfigurationSaving = {Enabled = false, FolderName = "Alchemist Hub", FileName = "Alchemist Config"},
+})
+
+local MainTab = Window:CreateTab("Home", nil)
+MainTab:CreateSection("Alchemist")
+
+-- ===== INGREDIENTS & POTIONS =====
+local Ingredients = {"All","Autumn Sprout","Blood Rose","Blue Crystal","Dark Root","Dire Flower","Elder Wood","Fire Flower","Glowing Mushroom","Hazel Lily","Jade Stone","Lamp Grass","Mushroom","Plane Flower","Red Crystal","Wild Vine","Winter Rose","Cake Mix"}
+local SelectedIngredients = {}
+local Collecting = false
+
+local Potions = {["Grug Potion"] = {"Mushroom"},["Nightmare Potion"] = {"Dark Root","Dark Root","Dark Root"},["Confusion Potion"] = {"Red Crystal","Blue Crystal","Glowing Mushroom"},["Power Potion"] = {"Dire Flower","Red Crystal","Wild Vine"},["Paralyzing Potion"] = {"Plane Flower","Plane Flower"},["Haste Potion"] = {"Autumn Sprout","Jade Stone"},["Invisibility Potion"] = {"Hazel Lily","Hazel Lily","Blue Crystal"},["Explosion Potion"] = {"Red Crystal","Fire Flower","Fire Flower"},["Invincible Potion"] = {"Elder Wood","Mushroom","Mushroom"},["Toxic Potion"] = {"Dark Root","Dark Root","Blood Rose","Red Crystal"},["Freeze Potion"] = {"Winter Rose","Winter Rose","Wild Vine","Blue Crystal","Glowing Mushroom"},["Feather Potion"] = {"Mushroom","Hazel Lily"},["Speed Potion"] = {"Mushroom","Mushroom","Plane Flower","Hazel Lily","Blue Crystal"},["Lethal Potion"] = {"Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Blood Rose","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root","Dark Root"},["Slow Potion"] = {"Mushroom","Mushroom","Blue Crystal","Blue Crystal","Jade Stone","Plane Flower"},["Antitoxin Potion"] = {"Blue Crystal","Glowing Mushroom","Glowing Mushroom","Plane Flower","Plane Flower","Elder Wood"},["Corrupted Vine Potion"] = {"Wild Vines","Wild Vines","Wild Vines","Blood Rose","Dark Root","Elder Wood","Jade Stone"}}
+
+local SelectedPotion = nil
+
+-- ===== ALCH COLLECTION =====
 MainTab:CreateDropdown({
     Name = "Select Ingredients to Collect",
     Options = Ingredients,
@@ -50,6 +96,7 @@ MainTab:CreateDropdown({
     MultipleOptions = true,
     Callback = function(options) SelectedIngredients = options end,
 })
+
 local CollectToggleRef
 CollectToggleRef = MainTab:CreateToggle({
     Name = "Collect All Ingredients",
@@ -99,12 +146,14 @@ CollectToggleRef = MainTab:CreateToggle({
         end
     end,
 })
+
 MainTab:CreateDropdown({
     Name = "Select Potion",
     Options = (function() local t = {"All"} for name in pairs(Potions) do table.insert(t, name) end return t end)(),
     MultipleOptions = false,
     Callback = function(option) SelectedPotion = option[1] end,
 })
+
 MainTab:CreateButton({
     Name = "Craft Selected Potion",
     Callback = function()
@@ -145,8 +194,10 @@ MainTab:CreateButton({
         end)
     end,
 })
+
+-- ===== SLAPPLE COLLECTION =====
 MainTab:CreateSection("Slapple")
-local SlappleCollect = false
+
 local SlappleCollect = false
 local SlappleCooldown = 0.15
 local LastSlapTime = 0
@@ -190,7 +241,8 @@ MainTab:CreateToggle({
         end
     end
 })
-local RejoinAutoSlapple = getgenv().RejoinAutoSlapple
+
+-- ===== REJOIN AUTO SLAPPLE =====
 local function StartRejoinSlapple()
     task.spawn(function()
         while getgenv().RejoinAutoSlapple do
@@ -206,7 +258,7 @@ local function StartRejoinSlapple()
                 continue
             end
 
-            -- WAIT FOR LOBBY TELEPORT (RETRY SAFE)
+            -- WAIT FOR LOBBY TELEPORT
             local tp
             for i = 1, 10 do
                 local lobby = workspace:FindFirstChild("Lobby")
@@ -280,7 +332,6 @@ local function StartRejoinSlapple()
             -- COLLECT SLAPPLES
             for _, model in ipairs(slapplesFolder:GetChildren()) do
                 local glove = model:FindFirstChild("Glove")
-
                 if glove and glove.Transparency < 1 then
                     firetouchinterest(hrp, glove, 0)
                     firetouchinterest(hrp, glove, 1)
@@ -291,12 +342,10 @@ local function StartRejoinSlapple()
             -- AFTER COLLECT → HOP
             task.wait(1)
             hop()
-
             task.wait(0.5)
         end
     end)
 end
-local RejoinToggle
 
 RejoinToggle = MainTab:CreateToggle({
     Name = "Rejoin Auto Slapple",
@@ -304,20 +353,21 @@ RejoinToggle = MainTab:CreateToggle({
     Callback = function(val)
         getgenv().RejoinAutoSlapple = val
 
-        if not getgenv().AutoFarmResume then
-            return
-        end
+        -- Only start loop if we are resuming from teleport
+        if not getgenv().AutoFarmResume then return end
 
         if val then
             StartRejoinSlapple()
         end
     end
 })
+
+-- ===== SAFE / RAGE SLAP =====
 MainTab:CreateSection("Slap Aura")
-local SafeSlapEnabled = false
-local RageSlapEnabled = false
-local SafeSlapRange = 10
-local RageSlapRange = 10
+local SafeSlapEnabled, RageSlapEnabled = false, false
+local SafeSlapRange, RageSlapRange = 10, 10
+local bRemote = RepStorage:WaitForChild("b")
+
 MainTab:CreateInput({
     Name = "Safe Slap Range",
     PlaceholderText = "Enter range (studs)",
@@ -330,28 +380,7 @@ MainTab:CreateInput({
     RemoveTextAfterFocusLost = false,
     Callback = function(val) local num = tonumber(val) if num then RageSlapRange = num end end
 })
-local RepStorage = game:GetService("ReplicatedStorage")
-local bRemote = RepStorage:WaitForChild("b")
-local function getHumanoidRootPart(player) return player.Character and player.Character:FindFirstChild("HumanoidRootPart") end
-local function getAnimator()
-    local humanoid = Character and Character:FindFirstChild("Humanoid")
-    if not humanoid then return end
-    local animator = humanoid:FindFirstChildOfClass("Animator")
-    if not animator then
-        animator = Instance.new("Animator")
-        animator.Parent = humanoid
-    end
-    return animator
-end
-local function playSlapAnimation()
-    local animator = getAnimator()
-    if not animator then return end
-    local slapAnim = RepStorage:FindFirstChild("Slap")
-    if slapAnim then
-        local track = animator:LoadAnimation(slapAnim)
-        track:Play()
-    end
-end
+
 MainTab:CreateToggle({
     Name = "Safe Slap Aura",
     CurrentValue = false,
@@ -389,6 +418,7 @@ MainTab:CreateToggle({
         end
     end
 })
+
 MainTab:CreateToggle({
     Name = "Rage Slap Aura",
     CurrentValue = false,
@@ -413,9 +443,9 @@ MainTab:CreateToggle({
     end
 })
 
-local RangeSlapEnabled = false
-local RangeValue = 20
-local RangePart = nil
+-- ===== RANGE SLAP =====
+MainTab:CreateSection("Range Slap")
+local RangeSlapEnabled, RangeValue, RangePart = false, 20, nil
 
 local function createRangeBox()
     if RangePart then RangePart:Destroy() end
@@ -440,7 +470,7 @@ end
 
 local function removeRangeBox()
     if RangePart then
-        RangePart:Destroy()
+        Range:Destroy()
         RangePart = nil
     end
 end
