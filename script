@@ -222,12 +222,15 @@ MainTab:CreateToggle({
                         local found = false
 
                         for _, model in ipairs(slapplesFolder:GetChildren()) do
-                            local glovePart = model:FindFirstChild("Glove")
-                            if glovePart then
+                            local glove = model:FindFirstChild("Glove")
+
+                            if glove and glove.Transparency < 1 then
                                 found = true
-                                firetouchinterest(hrp, glovePart, 0)
-                                firetouchinterest(hrp, glovePart, 1)
-                                task.wait(0.15) -- slight delay between each slap to prevent breaking
+
+                                firetouchinterest(hrp, glove, 0)
+                                firetouchinterest(hrp, glove, 1)
+
+                                task.wait(0.15)
                             end
                         end
 
