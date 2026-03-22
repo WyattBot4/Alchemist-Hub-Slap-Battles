@@ -12,6 +12,8 @@ local HttpService = game:GetService("HttpService")
 
 getgenv().RejoinAutoSlapple = getgenv().RejoinAutoSlapple or false
 local VALID_TOKEN = getgenv().AutoFarmToken
+getgenv().RejoinAutoSlapple = false
+getgenv().AutoFarmToken = nil
 local Window = Rayfield:CreateWindow({
     Name = "Alchemist Hub | Slap Battles",
     LoadingTitle = "Slap Battles",
@@ -256,7 +258,6 @@ local function StartRejoinSlapple()
 
                 if #servers > 0 then
                     local serverId = servers[math.random(1, #servers)]
-
                     queue_on_teleport([[
                         getgenv().RejoinAutoSlapple = true
                         getgenv().AutoFarmToken = tostring(math.random(100000,999999))
@@ -295,7 +296,7 @@ local function StartRejoinSlapple()
 end
 MainTab:CreateToggle({
     Name = "Rejoin Auto Slapple",
-    CurrentValue = getgenv().RejoinAutoSlapple,
+    CurrentValue = false,
     Callback = function(val)
         getgenv().RejoinAutoSlapple = val
 
