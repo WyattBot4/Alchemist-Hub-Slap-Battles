@@ -294,6 +294,7 @@ local function StartRejoinSlapple()
     end)
 end
 local RejoinToggle
+
 RejoinToggle = MainTab:CreateToggle({
     Name = "Rejoin Auto Slapple",
     CurrentValue = false,
@@ -547,11 +548,9 @@ MainTab:CreateToggle({
 task.delay(2, function()
     if getgenv().AutoFarmResume then
         getgenv().AutoFarmResume = nil
-        getgenv().RejoinAutoSlapple = true
 
+        getgenv().RejoinAutoSlapple = true
         RejoinToggle:Set(true)
         StartRejoinSlapple()
-    else
-        getgenv().RejoinAutoSlapple = false
     end
 end)
