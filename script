@@ -1,13 +1,13 @@
 -- ==============================
 -- Alchemist Hub | Slap Battles
--- Fully Fixed Version
+-- Fully Working Version
 -- ==============================
 
 -- prevent duplicate execution
 if getgenv().AlchemistHubLoaded then return end
 getgenv().AlchemistHubLoaded = true
 
--- always reset on normal join
+-- reset only on normal join
 if not getgenv().AutoFarmResume then
     getgenv().RejoinAutoSlapple = false
 end
@@ -25,6 +25,8 @@ end)
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local RepStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 -- ===== HELPER FUNCTIONS =====
 local function notify(title, text, duration)
@@ -68,18 +70,22 @@ local function playSlapAnimation()
     end
 end
 
--- ===== UI SETUP =====
+-- ===== GUI SETUP =====
 local Window = Rayfield:CreateWindow({
     Name = "Alchemist Hub | Slap Battles",
     LoadingTitle = "Slap Battles",
     LoadingSubtitle = "by z183",
-    ConfigurationSaving = {Enabled = false, FolderName = "Alchemist Hub", FileName = "Alchemist Config"},
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "Alchemist Hub",
+        FileName = "Big Hub"
+    },
 })
 
 local MainTab = Window:CreateTab("Home", nil)
-MainTab:CreateSection("Alchemist")
 
--- ===== INGREDIENTS & POTIONS =====
+-- ===== ALCH SECTION =====
+MainTab:CreateSection("Alchemist")
 local Ingredients = {"All","Autumn Sprout","Blood Rose","Blue Crystal","Dark Root","Dire Flower","Elder Wood","Fire Flower","Glowing Mushroom","Hazel Lily","Jade Stone","Lamp Grass","Mushroom","Plane Flower","Red Crystal","Wild Vine","Winter Rose","Cake Mix"}
 local SelectedIngredients = {}
 local Collecting = false
@@ -88,7 +94,6 @@ local Potions = {["Grug Potion"] = {"Mushroom"},["Nightmare Potion"] = {"Dark Ro
 
 local SelectedPotion = nil
 
--- ===== ALCH COLLECTION =====
 MainTab:CreateDropdown({
     Name = "Select Ingredients to Collect",
     Options = Ingredients,
@@ -165,9 +170,8 @@ MainTab:CreateButton({
             notify("Error", "Arena + Alchemist glove required!", 4)
             return
         end
-        local rs = game:GetService("ReplicatedStorage")
-        local alch = rs:WaitForChild("AlchemistEvent")
-        local ability = rs:WaitForChild("GeneralAbility")
+        local alch = RepStorage:WaitForChild("AlchemistEvent")
+        local ability = RepStorage:WaitForChild("GeneralAbility")
         task.spawn(function()
             local cauldronName = LocalPlayer.Name .. "'s Cauldron"
             if not workspace:FindFirstChild(cauldronName) then
@@ -197,7 +201,6 @@ MainTab:CreateButton({
 
 -- ===== SLAPPLE COLLECTION =====
 MainTab:CreateSection("Slapple")
-
 local SlappleCollect = false
 local SlappleCooldown = 0.15
 local LastSlapTime = 0
@@ -207,34 +210,24 @@ MainTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         SlappleCollect = Value
-
         if Value then
             task.spawn(function()
                 while SlappleCollect do
                     local hrp = Character:FindFirstChild("HumanoidRootPart")
                     local arena = workspace:FindFirstChild("Arena")
-
-                    if not hrp or not arena then
-                        task.wait(0.2)
-                        continue
-                    end
-
+                    if not hrp or not arena then task.wait(0.2) continue end
                     local island = arena:FindFirstChild("island5")
                     local slapplesFolder = island and island:FindFirstChild("Slapples")
-
                     if slapplesFolder then
                         for _, model in ipairs(slapplesFolder:GetChildren()) do
                             local glove = model:FindFirstChild("Glove")
-
                             if glove and tick() - LastSlapTime >= SlappleCooldown then
                                 LastSlapTime = tick()
-
                                 firetouchinterest(hrp, glove, 0)
                                 firetouchinterest(hrp, glove, 1)
                             end
                         end
                     end
-
                     task.wait(0.05)
                 end
             end)
@@ -246,19 +239,11 @@ MainTab:CreateToggle({
 local function StartRejoinSlapple()
     task.spawn(function()
         while getgenv().RejoinAutoSlapple do
-
-            -- WAIT FOR CHARACTER
             if not Character or not Character.Parent then
                 Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
             end
-
             local hrp = Character:WaitForChild("HumanoidRootPart", 5)
-            if not hrp then
-                task.wait(1)
-                continue
-            end
-
-            -- WAIT FOR LOBBY TELEPORT
+            if not hrp then task.wait(1) continue end
             local tp
             for i = 1, 10 do
                 local lobby = workspace:FindFirstChild("Lobby")
@@ -266,15 +251,11 @@ local function StartRejoinSlapple()
                 if tp then break end
                 task.wait(0.5)
             end
-
-            -- ENTER ARENA
             if tp and tp:FindFirstChildOfClass("TouchTransmitter") then
                 firetouchinterest(hrp, tp, 0)
                 firetouchinterest(hrp, tp, 1)
                 task.wait(3)
             end
-
-            -- WAIT FOR ARENA LOAD
             local slapplesFolder
             for i = 1, 10 do
                 local arena = workspace:FindFirstChild("Arena")
@@ -283,53 +264,31 @@ local function StartRejoinSlapple()
                 if slapplesFolder then break end
                 task.wait(0.5)
             end
-
-            if not slapplesFolder then
-                task.wait(1)
-                continue
-            end
-
-            -- CHECK IF ANY SLAPPLES EXIST
+            if not slapplesFolder then task.wait(1) continue end
             local found = false
             for _, model in ipairs(slapplesFolder:GetChildren()) do
                 local glove = model:FindFirstChild("Glove")
-                if glove and glove.Transparency < 1 then
-                    found = true
-                    break
-                end
+                if glove and glove.Transparency < 1 then found = true break end
             end
-
-            -- FUNCTION TO HOP SERVER
             local function hop()
                 local servers = {}
                 local req = game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
                 local data = HttpService:JSONDecode(req)
-
                 for _, v in pairs(data.data) do
                     if v.playing < v.maxPlayers and v.id ~= game.JobId then
                         table.insert(servers, v.id)
                     end
                 end
-
                 if #servers > 0 then
                     local serverId = servers[math.random(1, #servers)]
                     queue_on_teleport([[
                         getgenv().AutoFarmResume = true
                         loadstring(game:HttpGet("https://raw.githubusercontent.com/WyattBot4/Alchemist-Hub-Slap-Battles/refs/heads/main/script"))()
                     ]])
-
                     TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, game.Players.LocalPlayer)
                 end
             end
-
-            -- IF NONE → HOP
-            if not found then
-                task.wait(1)
-                hop()
-                return
-            end
-
-            -- COLLECT SLAPPLES
+            if not found then task.wait(1) hop() return end
             for _, model in ipairs(slapplesFolder:GetChildren()) do
                 local glove = model:FindFirstChild("Glove")
                 if glove and glove.Transparency < 1 then
@@ -338,8 +297,6 @@ local function StartRejoinSlapple()
                     task.wait(0.15)
                 end
             end
-
-            -- AFTER COLLECT → HOP
             task.wait(1)
             hop()
             task.wait(0.5)
@@ -347,26 +304,33 @@ local function StartRejoinSlapple()
     end)
 end
 
+-- ===== REJOIN TOGGLE =====
 RejoinToggle = MainTab:CreateToggle({
     Name = "Rejoin Auto Slapple",
-    CurrentValue = false,
+    CurrentValue = getgenv().AutoFarmResume or false,
     Callback = function(val)
         getgenv().RejoinAutoSlapple = val
-
-        -- Only start loop if we are resuming from teleport
         if not getgenv().AutoFarmResume then return end
-
-        if val then
-            StartRejoinSlapple()
-        end
+        if val then StartRejoinSlapple() end
     end
 })
 
--- ===== SAFE / RAGE SLAP =====
+-- ===== AUTO RESUME =====
+task.delay(2, function()
+    if getgenv().AutoFarmResume then
+        getgenv().AutoFarmResume = nil
+        getgenv().RejoinAutoSlapple = true
+        RejoinToggle:Set(true)
+        StartRejoinSlapple()
+    end
+end)
+
+-- ===== SLAP AURA =====
 MainTab:CreateSection("Slap Aura")
-local SafeSlapEnabled, RageSlapEnabled = false, false
-local SafeSlapRange, RageSlapRange = 10, 10
-local bRemote = RepStorage:WaitForChild("b")
+local SafeSlapEnabled = false
+local RageSlapEnabled = false
+local SafeSlapRange = 10
+local RageSlapRange = 10
 
 MainTab:CreateInput({
     Name = "Safe Slap Range",
@@ -380,6 +344,8 @@ MainTab:CreateInput({
     RemoveTextAfterFocusLost = false,
     Callback = function(val) local num = tonumber(val) if num then RageSlapRange = num end end
 })
+
+local bRemote = RepStorage:WaitForChild("b")
 
 MainTab:CreateToggle({
     Name = "Safe Slap Aura",
@@ -444,8 +410,9 @@ MainTab:CreateToggle({
 })
 
 -- ===== RANGE SLAP =====
-MainTab:CreateSection("Range Slap")
-local RangeSlapEnabled, RangeValue, RangePart = false, 20, nil
+local RangeSlapEnabled = false
+local RangeValue = 20
+local RangePart = nil
 
 local function createRangeBox()
     if RangePart then RangePart:Destroy() end
@@ -470,7 +437,7 @@ end
 
 local function removeRangeBox()
     if RangePart then
-        Range:Destroy()
+        RangePart:Destroy()
         RangePart = nil
     end
 end
@@ -500,37 +467,30 @@ MainTab:CreateToggle({
     end
 })
 
-game:GetService("RunService").RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
     if RangeSlapEnabled then
         updateRangeBox()
     end
 end)
 
-local UserInputService = game:GetService("UserInputService")
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.UserInputType == Enum.UserInputType.MouseButton1 and RangeSlapEnabled then
         local hrp = Character and Character:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-
         local size = Vector3.new(RangeValue, RangeValue, RangeValue)
         local cf = hrp.CFrame
-
         local params = OverlapParams.new()
         params.FilterType = Enum.RaycastFilterType.Blacklist
         params.FilterDescendantsInstances = {Character}
-
         local parts = workspace:GetPartBoundsInBox(cf, size, params)
-
         local hitPlayers = {}
-
         for _, part in pairs(parts) do
             local model = part:FindFirstAncestorOfClass("Model")
             if model and model ~= Character then
                 local player = Players:GetPlayerFromCharacter(model)
                 if player and not hitPlayers[player] then
                     hitPlayers[player] = true
-
                     local targetRoot = model:FindFirstChild("HumanoidRootPart")
                     if targetRoot then
                         playSlapAnimation()
@@ -542,12 +502,12 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
+-- ===== ANTI VOID =====
 local AntiVoidEnabled = false
 local AntiVoidPart = nil
 
 local function createAntiVoid()
     if AntiVoidPart then AntiVoidPart:Destroy() end
-
     local plate = Instance.new("Part")
     plate.Name = "AntiVoidPlate"
     plate.Size = Vector3.new(10000, 2, 10000)
@@ -557,7 +517,6 @@ local function createAntiVoid()
     plate.Transparency = 0.6
     plate.Color = Color3.fromRGB(255,255,255)
     plate.Parent = workspace
-
     AntiVoidPart = plate
 end
 
@@ -582,13 +541,3 @@ MainTab:CreateToggle({
         end
     end
 })
-task.delay(2, function()
-    if getgenv().AutoFarmResume then
-        getgenv().AutoFarmResume = nil
-
-        getgenv().RejoinAutoSlapple = true
-        RejoinToggle:Set(true)
-
-        StartRejoinSlapple()
-    end
-end)
