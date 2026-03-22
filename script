@@ -195,6 +195,7 @@ local function StartRejoinSlapple()
                 continue
             end
 
+            -- ENTER ARENA
             local lobby = workspace:FindFirstChild("Lobby")
             local tp = lobby and lobby:FindFirstChild("Teleport1")
 
@@ -204,6 +205,7 @@ local function StartRejoinSlapple()
                 task.wait(2)
             end
 
+            -- GET SLAPPLES
             local arena = workspace:FindFirstChild("Arena")
             local island = arena and arena:FindFirstChild("island5")
             local slapplesFolder = island and island:FindFirstChild("Slapples")
@@ -211,17 +213,16 @@ local function StartRejoinSlapple()
             if slapplesFolder then
                 local found = false
 
+                -- CHECK IF ANY VALID SLAPPLES EXIST
                 for _, model in ipairs(slapplesFolder:GetChildren()) do
                     local glove = model:FindFirstChild("Glove")
-
                     if glove and glove.Transparency < 1 then
                         found = true
-                        firetouchinterest(hrp, glove, 0)
-                        firetouchinterest(hrp, glove, 1)
-                        task.wait(0.15)
+                        break
                     end
                 end
 
+                -- IF NONE → TELEPORT
                 if not found then
                     task.wait(1)
 
@@ -246,6 +247,42 @@ local function StartRejoinSlapple()
 
                         TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, game.Players.LocalPlayer)
                     end
+                end
+
+                -- COLLECT SLAPPLES
+                for _, model in ipairs(slapplesFolder:GetChildren()) do
+                    local glove = model:FindFirstChild("Glove")
+
+                    if glove and glove.Transparency < 1 then
+                        firetouchinterest(hrp, glove, 0)
+                        firetouchinterest(hrp, glove, 1)
+                        task.wait(0.15)
+                    end
+                end
+
+                -- AFTER COLLECTING → TELEPORT AGAIN
+                task.wait(1)
+
+                local servers = {}
+                local req = game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
+                local data = HttpService:JSONDecode(req)
+
+                for _, v in pairs(data.data) do
+                    if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                        table.insert(servers, v.id)
+                    end
+                end
+
+                if #servers > 0 then
+                    local serverId = servers[math.random(1, #servers)]
+
+                    queue_on_teleport([[
+                        getgenv().RejoinAutoSlapple = true
+                        getgenv().AutoFarmSession = tostring(game.JobId)
+                        loadstring(game:HttpGet("https://raw.githubusercontent.com/WyattBot4/Alchemist-Hub-Slap-Battles/refs/heads/main/script"))()
+                    ]])
+
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, game.Players.LocalPlayer)
                 end
             end
 
