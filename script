@@ -185,84 +185,81 @@ MainTab:CreateToggle({
     end
 })
 local RejoinAutoSlapple = getgenv().RejoinAutoSlapple
+local function StartRejoinSlapple()
+    task.spawn(function()
+        while getgenv().RejoinAutoSlapple do
+            local hrp = Character:FindFirstChild("HumanoidRootPart")
 
+            if not hrp then
+                task.wait(1)
+                continue
+            end
+
+            local lobby = workspace:FindFirstChild("Lobby")
+            local tp = lobby and lobby:FindFirstChild("Teleport1")
+
+            if tp and tp:FindFirstChildOfClass("TouchTransmitter") then
+                firetouchinterest(hrp, tp, 0)
+                firetouchinterest(hrp, tp, 1)
+                task.wait(2)
+            end
+
+            local arena = workspace:FindFirstChild("Arena")
+            local island = arena and arena:FindFirstChild("island5")
+            local slapplesFolder = island and island:FindFirstChild("Slapples")
+
+            if slapplesFolder then
+                local found = false
+
+                for _, model in ipairs(slapplesFolder:GetChildren()) do
+                    local glove = model:FindFirstChild("Glove")
+
+                    if glove and glove.Transparency < 1 then
+                        found = true
+                        firetouchinterest(hrp, glove, 0)
+                        firetouchinterest(hrp, glove, 1)
+                        task.wait(0.15)
+                    end
+                end
+
+                if not found then
+                    task.wait(1)
+
+                    local servers = {}
+                    local req = game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
+                    local data = HttpService:JSONDecode(req)
+
+                    for _, v in pairs(data.data) do
+                        if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                            table.insert(servers, v.id)
+                        end
+                    end
+
+                    if #servers > 0 then
+                        local serverId = servers[math.random(1, #servers)]
+
+                        queue_on_teleport([[
+                            getgenv().RejoinAutoSlapple = true
+                            loadstring(game:HttpGet("https://raw.githubusercontent.com/WyattBot4/Alchemist-Hub-Slap-Battles/refs/heads/main/script"))()
+                        ]])
+
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, game.Players.LocalPlayer)
+                    end
+                end
+            end
+
+            task.wait(0.5)
+        end
+    end)
+end
 MainTab:CreateToggle({
     Name = "Rejoin Auto Slapple",
-    CurrentValue = RejoinAutoSlapple,
+    CurrentValue = getgenv().RejoinAutoSlapple,
     Callback = function(val)
-        RejoinAutoSlapple = val
         getgenv().RejoinAutoSlapple = val
 
         if val then
-            task.spawn(function()
-                while RejoinAutoSlapple do
-                    local hrp = Character:FindFirstChild("HumanoidRootPart")
-
-                    if not hrp then
-                        task.wait(1)
-                        continue
-                    end
-
-                    -- STEP 1: Enter arena
-                    local lobby = workspace:FindFirstChild("Lobby")
-                    local tp = lobby and lobby:FindFirstChild("Teleport1")
-
-                    if tp and tp:FindFirstChildOfClass("TouchTransmitter") then
-                        firetouchinterest(hrp, tp, 0)
-                        firetouchinterest(hrp, tp, 1)
-                        task.wait(2) -- wait for arena to load
-                    end
-
-                    -- STEP 2: Collect slapples
-                    local arena = workspace:FindFirstChild("Arena")
-                    local island = arena and arena:FindFirstChild("island5")
-                    local slapplesFolder = island and island:FindFirstChild("Slapples")
-
-                    if slapplesFolder then
-                        local found = false
-
-                        for _, model in ipairs(slapplesFolder:GetChildren()) do
-                            local glove = model:FindFirstChild("Glove")
-
-                            if glove and glove.Transparency < 1 then
-                                found = true
-
-                                firetouchinterest(hrp, glove, 0)
-                                firetouchinterest(hrp, glove, 1)
-
-                                task.wait(0.15)
-                            end
-                        end
-
-                        -- STEP 3: Hop server if none left
-                        if not found then
-                            task.wait(1)
-                            local servers = {}
-                            local req = game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
-                            local data = HttpService:JSONDecode(req)
-
-                            for _, v in pairs(data.data) do
-                                if v.playing < v.maxPlayers and v.id ~= game.JobId then
-                                    table.insert(servers, v.id)
-                                end
-                            end
-
-                            if #servers > 0 then
-                                local serverId = servers[math.random(1, #servers)]
-
-                                queue_on_teleport([[
-                                    getgenv().RejoinAutoSlapple = true
-                                    loadstring(game:HttpGet("https://raw.githubusercontent.com/WyattBot4/Alchemist-Hub-Slap-Battles/refs/heads/main/script"))()
-                                ]])
-
-                                TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, game.Players.LocalPlayer)
-                            end
-                        end
-                    end
-
-                    task.wait(0.5)
-                end
-            end)
+            StartRejoinSlapple()
         end
     end
 })
@@ -505,3 +502,8 @@ MainTab:CreateToggle({
         end
     end
 })
+task.delay(2, function()
+    if getgenv().RejoinAutoSlapple then
+        StartRejoinSlapple()
+    end
+end)
