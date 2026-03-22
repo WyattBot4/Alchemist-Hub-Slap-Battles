@@ -141,36 +141,48 @@ MainTab:CreateButton({
 })
 MainTab:CreateSection("Slapple")
 local SlappleCollect = false
+local SlappleCollect = false
+local SlappleCooldown = 0.15
+local LastSlapTime = 0
+
 MainTab:CreateToggle({
     Name = "Collect All Slapples",
     CurrentValue = false,
     Callback = function(Value)
         SlappleCollect = Value
-        if SlappleCollect then
+
+        if Value then
             task.spawn(function()
                 while SlappleCollect do
                     local hrp = Character:FindFirstChild("HumanoidRootPart")
-                    local folder = Workspace:FindFirstChild("Arena")
-                    if not hrp or not folder then task.wait(0.2) continue end
-                    local island = folder:FindFirstChild("island5")
+                    local arena = workspace:FindFirstChild("Arena")
+
+                    if not hrp or not arena then
+                        task.wait(0.2)
+                        continue
+                    end
+
+                    local island = arena:FindFirstChild("island5")
                     local slapplesFolder = island and island:FindFirstChild("Slapples")
+
                     if slapplesFolder then
                         for _, model in ipairs(slapplesFolder:GetChildren()) do
-                            for _, obj in ipairs(model:GetDescendants()) do
-                                if obj:IsA("TouchTransmitter") and obj.Parent then
-                                    task.spawn(function()
-                                        firetouchinterest(hrp, obj.Parent, 0)
-                                        firetouchinterest(hrp, obj.Parent, 1)
-                                    end)
-                                end
+                            local glove = model:FindFirstChild("Glove")
+
+                            if glove and tick() - LastSlapTime >= SlappleCooldown then
+                                LastSlapTime = tick()
+
+                                firetouchinterest(hrp, glove, 0)
+                                firetouchinterest(hrp, glove, 1)
                             end
                         end
                     end
-                    task.wait(0.1)
+
+                    task.wait(0.05)
                 end
             end)
         end
-    end,
+    end
 })
 local RejoinAutoSlapple = getgenv().RejoinAutoSlapple
 
@@ -185,32 +197,43 @@ MainTab:CreateToggle({
             task.spawn(function()
                 while RejoinAutoSlapple do
                     local hrp = Character:FindFirstChild("HumanoidRootPart")
-                    local arena = Workspace:FindFirstChild("Arena")
 
-                    if not hrp or not arena then
+                    if not hrp then
                         task.wait(1)
                         continue
                     end
 
-                    local island = arena:FindFirstChild("island5")
+                    -- STEP 1: Enter arena
+                    local lobby = workspace:FindFirstChild("Lobby")
+                    local tp = lobby and lobby:FindFirstChild("Teleport1")
+
+                    if tp and tp:FindFirstChildOfClass("TouchTransmitter") then
+                        firetouchinterest(hrp, tp, 0)
+                        firetouchinterest(hrp, tp, 1)
+                        task.wait(2) -- wait for arena to load
+                    end
+
+                    -- STEP 2: Collect slapples
+                    local arena = workspace:FindFirstChild("Arena")
+                    local island = arena and arena:FindFirstChild("island5")
                     local slapplesFolder = island and island:FindFirstChild("Slapples")
 
                     if slapplesFolder then
                         local found = false
 
                         for _, model in ipairs(slapplesFolder:GetChildren()) do
-                            for _, obj in ipairs(model:GetDescendants()) do
-                                if obj:IsA("TouchTransmitter") and obj.Parent then
-                                    found = true
-                                    firetouchinterest(hrp, obj.Parent, 0)
-                                    firetouchinterest(hrp, obj.Parent, 1)
-                                end
+                            local glovePart = model:FindFirstChild("Glove")
+                            if glovePart then
+                                found = true
+                                firetouchinterest(hrp, glovePart, 0)
+                                firetouchinterest(hrp, glovePart, 1)
+                                task.wait(0.15) -- slight delay between each slap to prevent breaking
                             end
                         end
 
+                        -- STEP 3: Hop server if none left
                         if not found then
                             task.wait(1)
-
                             local servers = {}
                             local req = game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
                             local data = HttpService:JSONDecode(req)
@@ -229,7 +252,7 @@ MainTab:CreateToggle({
                                     loadstring(game:HttpGet("https://raw.githubusercontent.com/WyattBot4/Alchemist-Hub-Slap-Battles/refs/heads/main/script"))()
                                 ]])
 
-                                TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, LocalPlayer)
+                                TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, game.Players.LocalPlayer)
                             end
                         end
                     end
