@@ -11,6 +11,7 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 
 getgenv().RejoinAutoSlapple = getgenv().RejoinAutoSlapple or false
+local VALID_TOKEN = getgenv().AutoFarmToken
 local Window = Rayfield:CreateWindow({
     Name = "Alchemist Hub | Slap Battles",
     LoadingTitle = "Slap Battles",
@@ -258,7 +259,7 @@ local function StartRejoinSlapple()
 
                     queue_on_teleport([[
                         getgenv().RejoinAutoSlapple = true
-                        getgenv().AutoFarmSession = tostring(game.JobId)
+                        getgenv().AutoFarmToken = tostring(math.random(100000,999999))
                         loadstring(game:HttpGet("https://raw.githubusercontent.com/WyattBot4/Alchemist-Hub-Slap-Battles/refs/heads/main/script"))()
                     ]])
 
@@ -301,7 +302,7 @@ MainTab:CreateToggle({
         if val then
             StartRejoinSlapple()
         else
-            getgenv().FromAutoFarm = false
+            getgenv().AutoFarmToken = nil
         end
     end
 })
@@ -546,11 +547,13 @@ MainTab:CreateToggle({
 })
 task.delay(2, function()
     if getgenv().RejoinAutoSlapple 
-    and getgenv().AutoFarmSession 
-    and getgenv().AutoFarmSession ~= tostring(game.JobId) then
+    and VALID_TOKEN 
+    and VALID_TOKEN == getgenv().AutoFarmToken then
         
         StartRejoinSlapple()
+    else
+        -- HARD RESET if not from teleport
+        getgenv().RejoinAutoSlapple = false
+        getgenv().AutoFarmToken = nil
     end
-
-    getgenv().AutoFarmSession = tostring(game.JobId)
 end)
