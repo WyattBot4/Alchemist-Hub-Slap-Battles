@@ -259,8 +259,7 @@ local function StartRejoinSlapple()
                 if #servers > 0 then
                     local serverId = servers[math.random(1, #servers)]
                     queue_on_teleport([[
-                        getgenv().RejoinAutoSlapple = true
-                        getgenv().AutoFarmToken = tostring(math.random(100000,999999))
+                        getgenv().AutoFarmResume = true
                         loadstring(game:HttpGet("https://raw.githubusercontent.com/WyattBot4/Alchemist-Hub-Slap-Battles/refs/heads/main/script"))()
                     ]])
 
@@ -294,7 +293,8 @@ local function StartRejoinSlapple()
         end
     end)
 end
-MainTab:CreateToggle({
+local RejoinToggle
+RejoinToggle = MainTab:CreateToggle({
     Name = "Rejoin Auto Slapple",
     CurrentValue = false,
     Callback = function(val)
@@ -302,8 +302,6 @@ MainTab:CreateToggle({
 
         if val then
             StartRejoinSlapple()
-        else
-            getgenv().AutoFarmToken = nil
         end
     end
 })
@@ -547,14 +545,13 @@ MainTab:CreateToggle({
     end
 })
 task.delay(2, function()
-    if getgenv().RejoinAutoSlapple 
-    and VALID_TOKEN 
-    and VALID_TOKEN == getgenv().AutoFarmToken then
-        
+    if getgenv().AutoFarmResume then
+        getgenv().AutoFarmResume = nil
+        getgenv().RejoinAutoSlapple = true
+
+        RejoinToggle:Set(true)
         StartRejoinSlapple()
     else
-        -- HARD RESET if not from teleport
         getgenv().RejoinAutoSlapple = false
-        getgenv().AutoFarmToken = nil
     end
 end)
