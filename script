@@ -240,7 +240,7 @@ local function StartRejoinSlapple()
 
                         queue_on_teleport([[
                             getgenv().RejoinAutoSlapple = true
-                            getgenv().FromAutoFarm = true
+                            getgenv().AutoFarmSession = tostring(game.JobId)
                             loadstring(game:HttpGet("https://raw.githubusercontent.com/WyattBot4/Alchemist-Hub-Slap-Battles/refs/heads/main/script"))()
                         ]])
 
@@ -506,9 +506,12 @@ MainTab:CreateToggle({
     end
 })
 task.delay(2, function()
-    if getgenv().RejoinAutoSlapple and getgenv().FromAutoFarm then
+    if getgenv().RejoinAutoSlapple 
+    and getgenv().AutoFarmSession 
+    and getgenv().AutoFarmSession ~= tostring(game.JobId) then
+        
         StartRejoinSlapple()
     end
 
-    getgenv().FromAutoFarm = false
+    getgenv().AutoFarmSession = tostring(game.JobId)
 end)
