@@ -9,11 +9,14 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+if getgenv().AlchemistHubLoaded and not getgenv().AutoFarmResume then
+    return
+end
+getgenv().AlchemistHubLoaded = true
 
-getgenv().RejoinAutoSlapple = getgenv().RejoinAutoSlapple or false
-local VALID_TOKEN = getgenv().AutoFarmToken
-getgenv().RejoinAutoSlapple = false
-getgenv().AutoFarmToken = nil
+if not getgenv().AutoFarmResume then
+    getgenv().RejoinAutoSlapple = false
+end
 local Window = Rayfield:CreateWindow({
     Name = "Alchemist Hub | Slap Battles",
     LoadingTitle = "Slap Battles",
@@ -301,6 +304,10 @@ RejoinToggle = MainTab:CreateToggle({
     Callback = function(val)
         getgenv().RejoinAutoSlapple = val
 
+        if not getgenv().AutoFarmResume then
+            return
+        end
+
         if val then
             StartRejoinSlapple()
         end
@@ -551,6 +558,7 @@ task.delay(2, function()
 
         getgenv().RejoinAutoSlapple = true
         RejoinToggle:Set(true)
+
         StartRejoinSlapple()
     end
 end)
